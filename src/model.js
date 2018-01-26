@@ -1,5 +1,3 @@
-import type { AuthorizationCode } from '@types/oauth2-server';
-
 // @flow
 
 var mongoose = require('mongoose');
@@ -35,6 +33,19 @@ class User {
   username: string;
   constructor(email, firstname, lastname, password, username) {
     Object.assign(this, {email, firstname, lastname, password, username});
+  }
+}
+
+class AuthorizationCode {
+  authorizationCode: string;
+  expiresAt: Date;
+  redirectUri: string;
+  scope: ?string;
+  constructor(authorizationCode: string, expiresAt: Date, redirectUri: string, scope?: string) {
+    this.authorizationCode = authorizationCode;
+    this.expiresAt = expiresAt;
+    this.redirectUri = redirectUri;
+    this.scope = scope;
   }
 }
 
@@ -82,7 +93,7 @@ module.exports.getClient = function(clientId:string, clientSecret:string) {
     grants: ['password', 'authorization_code'],
     accessTokenLifeTime: 15 * 60,
     refreshTokenLifeTime: 30 * 24 * 60 * 60,
-    redirectUris: ['google.com']
+    redirectUris: ['http://google.com', 'http://baidu.com']
   };
 }
 
@@ -120,23 +131,22 @@ module.exports.getAuthorizationCode = function (code: string) {
   return AuthorizationCodeTable[code];
 }
 
-module.exports.saveAuthorizationCode = function (code: string, client: Client, user: User) {
-  AuthorizationCodeTable[code] = {
-    authorizationCode: code,
-    code,
-    expiresAt: datePlusMill(new Date(), 60 * 1000),
-    redirectUri: 'www.google.com',
+module.exports.saveAuthorizationCode = function (code: AuthorizationCode, client: Client, user: User) {
+  AuthorizationCodeTable[code.authorizationCode] = {
+    authorizationCode: code.authorizationCode,
+    expiresAt: code.expiresAt,
+    redirectUri: code.redirectUri,
     client: {id: 'someid'},
     user: {
       username: 3,
       password: 4
     }
   };
-  return AuthorizationCodeTable[code];
+  return AuthorizationCodeTable[code.authorizationCode];
 }
 
 module.exports.revokeAuthorizationCode = function (code: AuthorizationCode) {
-  delete AuthorizationCodeTable[code];
+  delete AuthorizationCodeTable[code.authorizationCode];
   return true;
 }
 
